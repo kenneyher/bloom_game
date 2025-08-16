@@ -2,7 +2,7 @@ import kaplay from "kaplay"; // uncomment if you want to use without the k. pref
 
 kaplay({
   global: true, 
-  background: [236,236,236]
+  background: "#0a2e44"
 });
 
 loadRoot("./src/"); // A good idea for Itch.io publishing later
@@ -23,7 +23,7 @@ loadSprite("map","sprites/tiles.png", {
     sliceY:4,
 })
 
-setGravity(300)
+setGravity(900)
 
 const map = addLevel([
   "                 ",
@@ -31,7 +31,7 @@ const map = addLevel([
   "                 ",
   "                 ",
   "                 ",
-  "                 ",
+  "           (-------)  ",
   "    <>           ",
   "    |#           ",
   "====__==================================",
@@ -76,6 +76,27 @@ const map = addLevel([
       scale(2),
       body({ isStatic: true })
     ],
+    "(": () => [
+      sprite("map", { frame: 11 }),
+      area({ scale: vec2(1, 0.5) }),
+      scale(2),
+      // this one is a tag:
+      "oneway"
+    ],
+    "-": () => [
+      sprite("map", { frame: 12 }),
+      area({ scale: vec2(1, 0.5) }),
+      scale(2),
+      // this one is a tag:
+      "oneway"
+    ],
+    ")": () => [
+      sprite("map", { frame: 13 }),
+      area({ scale: vec2(1, 0.5) }),
+      scale(2),
+      // this one is a tag:
+      "oneway"
+    ],
   }
 })
 
@@ -103,7 +124,8 @@ const player = add([
         }
       }
     },
-    speed: 100
+    speed: 250,
+    dropThrough: false,
   }
 ])
 
@@ -118,14 +140,40 @@ onKeyDown("right", ()=> {
   player.move(player.speed,0)
 })
 
+player.onCollide("oneway", (p) => {
+  if (player.dropThrough) return;
+
+  if (player.vel.y > 0 && player.pos.y < p.pos.y) {
+    p.use("body") 
+    player.pos.y = p.pos.y - player.height / 2
+    player.vel.y = 0;
+  }
+})
+
 onKeyPress("space", ()=>{
   if(player.isGrounded()){
-    player.jump(300)
+    player.jump(400)
+  }
+})
+
+onKeyDown("down", () => {
+  if (player.isGrounded()) {
+    player.dropThrough = true
+    wait(0.5, () => player.dropThrough = false)
+  }
+})
+
+onUpdate("oneway", (plat) => {
+  const above = player.pos.y < (plat.pos.y + center().y)
+  const falling = player.vel.y > 0
+
+  if (above && falling && !player.dropThrough) {
+    plat.use(body({ isStatic: true }))
+  } else {
+    plat.unuse("body")
   }
 })
 
 player.onUpdate(()=>{
   player.animate()
 })
-
-onClick(() => addKaboom(mousePos()));
