@@ -1,179 +1,353 @@
-import kaplay from "kaplay"; // uncomment if you want to use without the k. prefix
+import kaplay from "kaplay" // uncomment if you want to use without the k. prefi
+import loader from "./loader"
+import createHUD from "./seed_hud"
+import { BLady } from "./bosses"
 
 kaplay({
-  global: true, 
-  background: "#0a2e44"
-});
+  global: true,
+  background: "#0a2e44",
+})
 
-loadRoot("./src/"); // A good idea for Itch.io publishing later
-loadSprite("player","sprites/player.png",
-  {
-    sliceX:5,
-    sliceY:4,
-    anims: {
-      idle: {from: 0, to: 1, loop : true, speed: 8},
-      run: {from: 2, to: 5, loop : true}, 
-      fall: {from: 6, to: 6}, 
-      hit: {from: 7, to: 10}, 
-      death: {from: 11, to: 16}, 
+loader();
+
+
+function shotgunBlast(p, dir = 1) {
+  const spread = deg2rad(300) // spread angle in radians
+  const pellets = 5 // number of bullets
+
+  for (let i = 0; i < pellets; i++) {
+    const angleOffset = spread * (i - (pellets - 1) / 2)
+    add([
+      sprite("bullets", { frame: 11 }),
+      pos(p),
+      area(),
+      scale(1),
+      opacity(),
+      lifespan(0.5),
+      move(Vec2.fromAngle(angleOffset), 600), // direction based on angle
+      "bullet",
+      { t: 0 },
+    ])
+  }
+}
+
+function machineGun(p, dir = 1, bullets = 10) {
+  const player = get("player")[0]
+  
+  add([
+    sprite("bullets", { frame: 12 }),
+    pos(player.pos.add(50, 30)),
+    area(),
+    scale(1),
+    opacity(),
+    offscreen(),
+    move(vec2(dir, 0), 800),
+    "bullet",
+    { t: 0 },
+  ])
+  
+  if (bullets == 0) {
+    return
+  }
+
+  wait(0.1, () => machineGun(p, dir, bullets - 1))
+}
+
+function rubberShot(p) {
+  const baseSpeed = 250 // horizontal velocity
+  const baseJump = -400 // initial upward push
+  const gravity = 900 // pull down
+  const bullets = 3
+  
+  for (let i = 0; i < bullets; i++) {
+    const bullet = add([
+      sprite("bullets", { frame: 13 }),
+      pos(p),
+      area(),
+      scale(2),
+      {
+        vel: vec2(baseSpeed + i * 100, baseJump + i * 100), // custom velocity
+        t: 0,
+      },
+    ])
+    
+    bullet.onUpdate(() => {
+      // apply motion
+      bullet.pos = bullet.pos.add(bullet.vel.scale(dt()))
+      
+      // gravity
+      bullet.vel.y += gravity * dt()
+      
+      // destroy if offscreen
+      if (
+        bullet.pos.x > width() ||
+        bullet.pos.y > height() ||
+        bullet.pos.x < 0
+      ) {
+        destroy(bullet)
+      }
+    })
+  }
+}
+
+scene("play", () => {
+  const hud = createHUD()
+  const playerSeeds = ['machinegun', 'shotgun', 'rubbershot' ]
+  setGravity(900)
+  const map = addLevel(
+    [
+      "                 ",
+      "                 ",
+      "                 ",
+      "                 ",
+      "                 ",
+      "           (-------)  ",
+      "    <>           ",
+      "    |#           ",
+      "====__==================================",
+      "________________________________________",
+      "________________________________________",
+    ],
+    {
+      tileWidth: 32,
+      tileHeight: 32,
+      pos: vec2(0, height() / 2),
+      tiles: {
+        "=": () => [
+          sprite("map", { frame: 1 }),
+          area(),
+          scale(2),
+          body({ isStatic: true }),
+        ],
+        _: () => [sprite("map", { frame: choose([3, 7, 7, 5, 7]) }), scale(2)],
+        "<": () => [
+          sprite("map", { frame: 0 }),
+          area(),
+          scale(2),
+          body({ isStatic: true }),
+        ],
+        ">": () => [
+          sprite("map", { frame: 2 }),
+          area(),
+          scale(2),
+          body({ isStatic: true }),
+        ],
+        "|": () => [
+          sprite("map", { frame: 4 }),
+          area(),
+          scale(2),
+          body({ isStatic: true }),
+        ],
+        "#": () => [
+          sprite("map", { frame: 6 }),
+          area(),
+          scale(2),
+          body({ isStatic: true }),
+        ],
+        "(": () => [
+          sprite("map", { frame: 11 }),
+          area({ scale: vec2(1, 0.5) }),
+          scale(2),
+          // this one is a tag:
+          "oneway",
+        ],
+        "-": () => [
+          sprite("map", { frame: 12 }),
+          area({ scale: vec2(1, 0.5) }),
+          scale(2),
+          // this one is a tag:
+          "oneway",
+        ],
+        ")": () => [
+          sprite("map", { frame: 13 }),
+          area({ scale: vec2(1, 0.5) }),
+          scale(2),
+          // this one is a tag:
+          "oneway",
+        ],
+      },
     }
-})
-loadSprite("map","sprites/tiles.png", {
-    sliceX:4,
-    sliceY:4,
-})
+  )
 
-setGravity(900)
+  const boss = BLady()
 
-const map = addLevel([
-  "                 ",
-  "                 ",
-  "                 ",
-  "                 ",
-  "                 ",
-  "           (-------)  ",
-  "    <>           ",
-  "    |#           ",
-  "====__==================================",
-  "________________________________________",
-  "________________________________________",
-], {
-  tileWidth: 32,  
-  tileHeight: 32,
-  pos: vec2(0, height() /2),
-  tiles: {
-    "=": () => [
-      sprite("map", { frame: 1 }),
-      area(),
-      scale(2),
-      body({ isStatic: true })
-    ],
-    "_": () => [
-      sprite("map", { frame: choose([3, 7, 7, 5, 7]) }),
-      scale(2),
-    ],
-    "<": () => [
-      sprite("map", { frame: 0 }),
-      area(),
-      scale(2),
-      body({ isStatic: true })
-    ],
-    ">": () => [
-      sprite("map", { frame: 2 }),
-      area(),
-      scale(2),
-      body({ isStatic: true })
-    ],
-    "|": () => [
-      sprite("map", { frame: 4 }),
-      area(),
-      scale(2),
-      body({ isStatic: true })
-    ],
-    "#": () => [
-      sprite("map", { frame: 6 }),
-      area(),
-      scale(2),
-      body({ isStatic: true })
-    ],
-    "(": () => [
-      sprite("map", { frame: 11 }),
-      area({ scale: vec2(1, 0.5) }),
-      scale(2),
-      // this one is a tag:
-      "oneway"
-    ],
-    "-": () => [
-      sprite("map", { frame: 12 }),
-      area({ scale: vec2(1, 0.5) }),
-      scale(2),
-      // this one is a tag:
-      "oneway"
-    ],
-    ")": () => [
-      sprite("map", { frame: 13 }),
-      area({ scale: vec2(1, 0.5) }),
-      scale(2),
-      // this one is a tag:
-      "oneway"
-    ],
-  }
-})
-
-const player = add([
-  sprite("player"),
-  pos(center()),
-  scale(2),
-  area(),
-  body(),
-  {
-    animate: function(){
-      let curAnim = this.curAnim()
-      if(!this.isGrounded()){
-        if(curAnim != "fall"){
-          this.play("fall")
+  const player = add([
+    sprite("player"),
+    pos(center()),
+    scale(2),
+    area(),
+    body(),
+    "player",
+    {
+      animate: function () {
+        let curAnim = this.curAnim()
+        if (!this.isGrounded()) {
+          if (curAnim != "fall") {
+            this.play("fall")
+          }
+        } else if (this.running) {
+          if (curAnim != "run") this.play("run")
+        } else {
+          if (curAnim != "idle") {
+            this.play("idle")
+          }
         }
-      }
-      else if (this.running){
-        if (curAnim != "run")
-          this.play("run")
-      }
-      else {
-        if (curAnim != "idle"){
-          this.play("idle")
-        }
-      }
+      },
+      speed: 250,
+      dropThrough: false,
+      atkCD: 0.25,
+      cd: 0,
+      shooting: false,
+      seed: 'shotgun',
+      growing: false,
+      bloom: false,
+      seedCD: 0,
     },
-    speed: 250,
-    dropThrough: false,
-  }
-])
+  ])
 
-onKeyDown(['left',"right"], ()=> {player.running = true})
-onKeyRelease(['left',"right"], ()=> {player.running = false})
+  onKeyDown(["left", "right"], () => {
+    player.running = true
+  })
+  onKeyRelease(["left", "right"], () => {
+    player.running = false
+  })
 
-onKeyDown("left", ()=> {
-  player.move(-player.speed,0)
+  onKeyDown("left", () => {
+    player.move(-player.speed, 0)
+  })
+
+  onKeyDown("right", () => {
+    player.move(player.speed, 0)
+  })
+
+  player.onCollide("oneway", (p) => {
+    if (player.dropThrough) return
+
+    if (player.vel.y > 0 && player.pos.y < p.pos.y) {
+      p.use("body")
+      player.pos.y = p.pos.y - player.height / 2
+      player.vel.y = 0
+    }
+  })
+
+  const switches = ["1", "2", "3"] 
+  switches.forEach(key => {
+    onKeyPress(key, () => {
+      if (!player.growing) {
+        player.seed = playerSeeds[Number(key - 1)]
+      }
+    })
+  });
+
+  onKeyPress("space", () => {
+    if (player.isGrounded()) {
+      player.jump(400)
+    }
+  })
+
+  onKeyDown("down", () => {
+    if (player.isGrounded()) {
+      player.dropThrough = true
+      wait(0.5, () => (player.dropThrough = false))
+    }
+  })
+
+  onKeyPress("q", () => {
+    if (!player.growing) {
+      player.growing = true;
+    } else {
+      if (player.bloom) {
+        switch (player.seed) {
+          case "machinegun":
+            machineGun(player.pos.add(50, 25), 1)
+            break;
+          case "shotgun":
+            shotgunBlast(player.pos.add(40, 20), 1)
+            break;
+          case "rubbershot":
+            rubberShot(player.pos.add(60, 10))
+            break
+          case "default":
+            break
+        }
+        player.seedCD = 0;
+        player.bloom = false;
+        player.growing = false;
+      }
+    }
+  })
+
+  onCollide("bullet", "boss", (b, bo) => {
+    b.destroy()
+  })
+
+  onUpdate("oneway", (plat) => {
+    const above = player.pos.y <= plat.pos.y + center().y
+    const falling = player.vel.y > 0
+
+    if (above && falling && !player.dropThrough) {
+      plat.use(body({ isStatic: true }))
+    } else {
+      plat.unuse("body")
+    }
+  })
+
+  onUpdate("bullet", (b) => {
+    b.t += dt() * 5 // speed of breathing (adjust multiplier)
+    const s = 1 + 0.2 * Math.sin(b.t)
+    // ↑ oscillates between 0.8x and 1.2x original size
+    b.scale = vec2(s)
+  })
+
+  onUpdate("seed", (s) => {
+    if (s.is(player.seed)) {
+      s.scale = vec2(2, 2)
+    } else {
+      s.scale = vec2(1, 1)
+    }
+  })
+
+  onUpdate("flower", (f) => {
+    if (player.growing) {
+      f.hidden = false
+      const progress = player.seedCD / 3;
+      const frameRange = 6 - 1
+      const idx = 1 + Math.floor(progress * frameRange)
+      f.frame = idx;
+    } else {
+      f.hidden = true
+    }
+  })
+
+  player.onUpdate(() => {
+    player.animate()
+
+    player.cd += dt()
+    if (player.cd > player.atkCD) {
+      player.cd = 0
+      add([
+        sprite("bullets", { frame: 0 }),
+        move(RIGHT, 400),
+        scale(1),
+        area(),
+        anchor("center"),
+        pos(player.pos.add(60, 30)),
+        offscreen(),
+        "bullet",
+        {
+          t: 0,
+        },
+      ])
+    }
+
+    if (player.growing && !player.bloom) {
+      player.seedCD += dt()
+
+      if (player.seedCD >= 3) {
+        player.bloom = true;
+      }
+    }
+  })
 })
 
-onKeyDown("right", ()=> {
-  player.move(player.speed,0)
-})
-
-player.onCollide("oneway", (p) => {
-  if (player.dropThrough) return;
-
-  if (player.vel.y > 0 && player.pos.y < p.pos.y) {
-    p.use("body") 
-    player.pos.y = p.pos.y - player.height / 2
-    player.vel.y = 0;
-  }
-})
-
-onKeyPress("space", ()=>{
-  if(player.isGrounded()){
-    player.jump(400)
-  }
-})
-
-onKeyDown("down", () => {
-  if (player.isGrounded()) {
-    player.dropThrough = true
-    wait(0.5, () => player.dropThrough = false)
-  }
-})
-
-onUpdate("oneway", (plat) => {
-  const above = player.pos.y < (plat.pos.y + center().y)
-  const falling = player.vel.y > 0
-
-  if (above && falling && !player.dropThrough) {
-    plat.use(body({ isStatic: true }))
-  } else {
-    plat.unuse("body")
-  }
-})
-
-player.onUpdate(()=>{
-  player.animate()
-})
+go('play')
