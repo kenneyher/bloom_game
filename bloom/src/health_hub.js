@@ -6,15 +6,15 @@ export function createHealthHUD(hp) {
   ])
 
   const maxLives = hp
-  const rectWidth = 30
-  const rectHeight = 10
+  const rectWidth = 16
+  const rectHeight = 16
   const spacing = 10
   const startPos = vec2(20, 20)
 
   for (let i = 0; i < maxLives; i++) {
     const heart = hud.add([
-      rect(rectWidth, rectHeight),
-      color(255, 0, 0),
+      sprite("bullets", {frame: 1}),
+      scale(2),
       pos(startPos.x + i * (rectWidth + spacing), startPos.y),
       "hp"
     ])
