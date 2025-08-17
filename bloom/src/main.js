@@ -2,7 +2,8 @@ import kaplay from "kaplay" // uncomment if you want to use without the k. prefi
 import loader from "./loader"
 import createHUD from "./seed_hud"
 import { BLady } from "./bosses"
-import { createHealthHUD } from "./health_hub.js" // here
+import { createHealthHUD } from "./health_hub.js" 
+import seeds from "./seedInfo.js"
 
 kaplay({
   global: true,
@@ -21,11 +22,11 @@ function shotgunBlast(p, dir = 1) {
       sprite("bullets", { frame: 11 }),
       pos(p),
       area(),
-      scale(1),
+      scale(0.5),
       opacity(),
       lifespan(0.5),
       move(Vec2.fromAngle(angleOffset), 600), // direction based on angle
-      "bullet",
+      "big bullet",
       { t: 0 },
     ])
   }
@@ -35,13 +36,13 @@ function shotgunBlast(p, dir = 1) {
 function machineGun(p, dir = 1, bullets = 10) {
   add([
     sprite("bullets", { frame: 12 }),
-    pos(p.pos.add(20, 10)),
+    pos(p.pos.add(10, -15)),
     area(),
-    scale(1),
+    scale(0.5),
     opacity(),
     offscreen(),
     move(vec2(dir, 0), 800),
-    "bullet",
+    "big bullet",
     { t: 0 },
   ])
 
@@ -63,6 +64,7 @@ function rubberShot(p) {
       sprite("bullets", { frame: 13 }),
       pos(p),
       area(),
+      "big bullet",
       {
         vel: vec2(baseSpeed + i * 100, baseJump + i * 100), // custom velocity
         t: 0,
@@ -94,7 +96,11 @@ scene("play", () => {
 
   camPos(vec2(0, 0))
   const hud = createHUD()
-  const playerSeeds = ["machinegun", "shotgun", "rubbershot"]
+  const seedAtks = {
+    "rose barrage": () => machineGun(player, 1),
+    "burst leaf": () => shotgunBlast(player.pos.add(10, -15), 1),
+    "bean bombs": () => rubberShot(player.pos.add(10, -15))
+  }
 
   setGravity(900)
   const map = addLevel(
@@ -151,10 +157,10 @@ scene("play", () => {
             },
             speed: 150,
             dropThrough: false,
-            atkCD: 0.25,
+            atkCD: 0.5,
             cd: 0,
             shooting: false,
-            seed: "shotgun",
+            seed: Object.keys(seeds)[0],
             growing: false,
             bloom: false,
             seedCD: 0,
@@ -256,7 +262,7 @@ scene("play", () => {
   switches.forEach((key) => {
     onKeyPress(key, () => {
       if (!player.growing) {
-        player.seed = playerSeeds[Number(key - 1)]
+        player.seed = Object.keys(seeds)[Number(key - 1)]
       }
     })
   })
@@ -279,19 +285,7 @@ scene("play", () => {
       player.growing = true
     } else {
       if (player.bloom) {
-        switch (player.seed) {
-          case "machinegun":
-            machineGun(player, 1)
-            break
-          case "shotgun":
-            shotgunBlast(player.pos.add(40, 20), 1)
-            break
-          case "rubbershot":
-            rubberShot(player.pos.add(60, 10))
-            break
-          case "default":
-            break
-        }
+        seedAtks[player.seed]()
         player.seedCD = 0
         player.bloom = false
         player.growing = false
@@ -301,6 +295,11 @@ scene("play", () => {
 
   onCollide("bullet", "boss", (b, bo) => {
     b.destroy()
+  })
+
+  onCollide("big bullet", "boss", (b, bo) => {
+    b.destroy()
+    bo.hurt(seeds[player.seed].dmg)
   })
 
   onUpdate("oneway", (plat) => {
@@ -332,7 +331,7 @@ scene("play", () => {
   onUpdate("flower", (f) => {
     if (player.growing) {
       f.hidden = false
-      const progress = player.seedCD / 3
+      const progress = player.seedCD / seeds[player.seed].cd
       const frameRange = 6 - 1
       const idx = 1 + Math.floor(progress * frameRange)
       f.frame = idx
@@ -360,6 +359,7 @@ scene("play", () => {
         "bullet",
         {
           t: 0,
+          dmg: 1,
         },
       ])
     }
@@ -367,7 +367,7 @@ scene("play", () => {
     if (player.growing && !player.bloom) {
       player.seedCD += dt()
 
-      if (player.seedCD >= 3) {
+      if (player.seedCD >= seeds[player.seed].cd) {
         player.bloom = true
       }
     }

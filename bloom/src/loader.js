@@ -39,5 +39,10 @@ export default function loader() {
   loadSprite("seeds", "sprites/seeds.png", {
     sliceX: 3,
     sliceY: 1,
+    anims: {
+      "rose barrage": 0,
+      "burst leaf": 1,
+      "bean bombs": 2
+    }
   })
 }
