@@ -1,15 +1,15 @@
 const seeds = {
   "rose barrage": {
     dmg: 1,
-    cd: 5,
+    cd: 3,
   },
   "burst leaf": {
     dmg: 3,
-    cd: 6
+    cd: 5
   },
   "bean bombs": {
     dmg: 5,
-    cd: 8
+    cd: 5
   }
 }
 

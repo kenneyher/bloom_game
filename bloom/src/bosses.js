@@ -1,13 +1,18 @@
 function BLady(p, player) {
   const boss = add([
     sprite("blady", { anim: "idle" }),
-    area(),
+    area({ scale: vec2(0.5, 0.8) }),
     body(),
+    anchor("bot"),
     health(500),
     pos(p),
-    state("wait", ["wait", "kiss", "blast"]),
+    state("wait", ["wait", "kiss", "blast", "death"]),
     "boss",
     "lady",
+    {
+      bulletTimer: 0.5,
+      bulletSpread: 5
+    }
   ])
 
   boss.onStateEnter("kiss", () => {
@@ -18,20 +23,24 @@ function BLady(p, player) {
     })
   })
 
+  boss.onStateEnter("death", () => {
+    boss.play("death")
+    wait(1, () => go('title'))
+  })
+
   boss.onStateEnter("wait", (time = 2) => {
     boss.play("idle")
     wait(time, () => boss.enterState(choose(["blast", "kiss", "wait"])))
   })
 
-  function createThorn(p, thorns = 15) {
-    // Pick a random point near the player (x ± 100, y = player's y)
-    for (let i = 0; i < thorns; i++) {
+  function createThorns(p, count = 15) {
+    debug.log(count)
+    for (let i = 0; i < count; i++) {
       const target = vec2(
         rand(player.pos.x - 200, player.pos.x + 200),
-        player.pos.y
+        player.pos.y + rand(-100, 100)
       )
 
-      // Direction vector from spawn → target
       const dir = target.sub(p).unit()
 
       add([
@@ -40,7 +49,7 @@ function BLady(p, player) {
         area(),
         scale(0.5),
         move(dir, 150),
-        rotate(dir.angle() + 180), // adjust for "left-facing" sprite
+        rotate(dir.angle() + 180),
         offscreen({ destroy: true }),
         "danger",
       ])
@@ -51,7 +60,7 @@ function BLady(p, player) {
     if (boss.frame == 8 && get("kiss").length < 1) {
       add([
         sprite("bullets", { anim: "heart" }),
-        pos(boss.pos.add(30, 20)),
+        pos(boss.pos.sub(25, 100)),
         move(LEFT, 100),
         "kiss",
       ])
@@ -61,7 +70,7 @@ function BLady(p, player) {
     if (!kiss.exploded && kiss.pos.x <= player.pos.x) {
       kiss.exploded = true // <-- custom flag
       kiss.unuse("move")
-      createThorn(kiss.pos, 10)
+      createThorns(kiss.pos, 3 * boss.bulletSpread)
       kiss.play("explode", {
         onEnd: () => kiss.destroy(),
       })
@@ -100,12 +109,12 @@ function BLady(p, player) {
       boss.spawning = true // custom flag
 
       // spawn bullets in intervals
-      boss.spawnTimer = loop(0.15, () => {
-        spawnBullet(boss.pos.add(50, 0)) // custom function
+      boss.spawnTimer = loop(boss.bulletTimer, () => {
+        spawnBullet(boss.pos.add(0, -120)) // custom function
       })
 
       // end phase after X seconds
-      wait(3, () => {
+      wait(randi(3, 6), () => {
         if (boss.exists()) {
           boss.spawnTimer.cancel()
           boss.spawning = false
@@ -113,6 +122,17 @@ function BLady(p, player) {
           boss.enterState("wait", rand(2, 4))
         }
       })
+    }
+  })
+
+  boss.onUpdate(() => {
+    if (boss.hp <= 250) {
+      boss.bulletTimer = 0.15
+      boss.bulletSpread = 10
+    }
+    if (boss.hp <= 0) {
+      boss.enterState("death")
+      debug.log (boss.hp)
     }
   })
 
