@@ -2,6 +2,7 @@ import kaplay from "kaplay" // uncomment if you want to use without the k. prefi
 import loader from "./loader"
 import createHUD from "./seed_hud"
 import { BLady } from "./bosses"
+import { createHealthHUD } from "./health_hub.js" // here
 
 kaplay({
   global: true,
@@ -30,8 +31,10 @@ function shotgunBlast(p, dir = 1) {
   }
 }
 
+
 function machineGun(p, dir = 1, bullets = 10) {
   const player = get("player")[0]
+  
 
   add([
     sprite("bullets", { frame: 12 }),
@@ -95,6 +98,7 @@ scene("play", () => {
   camPos(vec2(0, 0))
   const hud = createHUD()
   const playerSeeds = ["machinegun", "shotgun", "rubbershot"]
+
   setGravity(900)
   const map = addLevel(
     [
@@ -129,6 +133,7 @@ scene("play", () => {
           sprite("player"),
           area(),
           body(),
+          health(3),
           "player",
           {
             animate: function () {
@@ -205,9 +210,13 @@ scene("play", () => {
     }
   )
 
+
+  
   // const boss = BLady()
 
   const player = map.get("player")[0]
+
+  let healthHub = createHealthHUD(player.hp())
 
   onKeyDown(["left", "right"], () => {
     player.running = true
@@ -232,6 +241,15 @@ scene("play", () => {
       player.pos.y = p.pos.y - player.height / 2
       player.vel.y = 0
     }
+  })
+
+  player.onCollide("danger", (d) =>{
+    player.hurt(1)
+    d.destroy()
+  })
+
+  player.on("hurt", ()=> {
+    const hearts = healthHub.get("hp")
   })
 
   const switches = ["1", "2", "3"]
@@ -377,5 +395,9 @@ scene("play", () => {
   // re-run on window resize
   onResize(updateCameraZoom)
 })
+
+// Health of player :d
+
+
 
 go("play")
