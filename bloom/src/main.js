@@ -33,12 +33,9 @@ function shotgunBlast(p, dir = 1) {
 
 
 function machineGun(p, dir = 1, bullets = 10) {
-  const player = get("player")[0]
-  
-
   add([
     sprite("bullets", { frame: 12 }),
-    pos(player.pos.add(50, 30)),
+    pos(p.pos.add(20, 10)),
     area(),
     scale(1),
     opacity(),
@@ -127,11 +124,13 @@ scene("play", () => {
     {
       tileWidth: TILE_SIZE,
       tileHeight: TILE_SIZE,
-      // pos: vec2(0, height() / 2),
       tiles: {
         "@": () => [
           sprite("player"),
-          area(),
+          area({
+            scale: 0.5
+          }),
+          anchor('bot'),
           body(),
           health(3),
           "player",
@@ -161,7 +160,7 @@ scene("play", () => {
             seedCD: 0,
           },
         ],
-        "B": () => BLady(),
+        "B": () => ["boss spawn"],
         "=": () => [
           sprite("map", { frame: 1 }),
           area(),
@@ -210,11 +209,9 @@ scene("play", () => {
     }
   )
 
-
   
-  // const boss = BLady()
-
   const player = map.get("player")[0]
+  const boss = BLady(map.get("boss spawn")[0].pos, player)
 
   let healthHub = createHealthHUD(player.hp())
 
@@ -250,6 +247,9 @@ scene("play", () => {
 
   player.on("hurt", ()=> {
     const hearts = healthHub.get("hp")
+    if (hearts.length > 0) {
+      hearts[hearts.length - 1].destroy()
+    }
   })
 
   const switches = ["1", "2", "3"]
@@ -281,7 +281,7 @@ scene("play", () => {
       if (player.bloom) {
         switch (player.seed) {
           case "machinegun":
-            machineGun(player.pos.add(50, 25), 1)
+            machineGun(player, 1)
             break
           case "shotgun":
             shotgunBlast(player.pos.add(40, 20), 1)
@@ -318,7 +318,7 @@ scene("play", () => {
     b.t += dt() * 5 // speed of breathing (adjust multiplier)
     const s = 0.5 + 0.2 * Math.sin(b.t)
     // ↑ oscillates between 0.8x and 1.2x original size
-    b.scale = vec2(s)
+    // b.scale = vec2(s)
   })
 
   onUpdate("seed", (s) => {
@@ -354,7 +354,7 @@ scene("play", () => {
         area(),
         opacity(),
         anchor("center"),
-        pos(player.pos.add(40, 15)),
+        pos(player.pos.add(10, -15)),
         offscreen({ destroy: true }),
         lifespan(2),
         "bullet",
