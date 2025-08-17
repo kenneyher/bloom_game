@@ -8,8 +8,7 @@ kaplay({
   background: "#0a2e44",
 })
 
-loader();
-
+loader()
 
 function shotgunBlast(p, dir = 1) {
   const spread = deg2rad(300) // spread angle in radians
@@ -33,7 +32,7 @@ function shotgunBlast(p, dir = 1) {
 
 function machineGun(p, dir = 1, bullets = 10) {
   const player = get("player")[0]
-  
+
   add([
     sprite("bullets", { frame: 12 }),
     pos(player.pos.add(50, 30)),
@@ -45,7 +44,7 @@ function machineGun(p, dir = 1, bullets = 10) {
     "bullet",
     { t: 0 },
   ])
-  
+
   if (bullets == 0) {
     return
   }
@@ -58,26 +57,25 @@ function rubberShot(p) {
   const baseJump = -400 // initial upward push
   const gravity = 900 // pull down
   const bullets = 3
-  
+
   for (let i = 0; i < bullets; i++) {
     const bullet = add([
       sprite("bullets", { frame: 13 }),
       pos(p),
       area(),
-      scale(2),
       {
         vel: vec2(baseSpeed + i * 100, baseJump + i * 100), // custom velocity
         t: 0,
       },
     ])
-    
+
     bullet.onUpdate(() => {
       // apply motion
       bullet.pos = bullet.pos.add(bullet.vel.scale(dt()))
-      
+
       // gravity
       bullet.vel.y += gravity * dt()
-      
+
       // destroy if offscreen
       if (
         bullet.pos.x > width() ||
@@ -91,77 +89,115 @@ function rubberShot(p) {
 }
 
 scene("play", () => {
+  const TILE_SIZE = 16
+  const TILES_X = 40 // how many tiles across you want visible
+
+  camPos(vec2(0, 0))
   const hud = createHUD()
-  const playerSeeds = ['machinegun', 'shotgun', 'rubbershot' ]
+  const playerSeeds = ["machinegun", "shotgun", "rubbershot"]
   setGravity(900)
   const map = addLevel(
     [
-      "                 ",
-      "                 ",
-      "                 ",
-      "                 ",
-      "                 ",
-      "           (-------)  ",
-      "    <>           ",
-      "    |#           ",
-      "====__==================================",
-      "________________________________________",
-      "________________________________________",
+      "#                                        |",
+      "#                                        |",
+      "#                                        |",
+      "#                                        |",
+      "#                              B         |",
+      "#                                        |",
+      "#                                        |",
+      "#                                        |",
+      "#                                        |",
+      "#                                        |",
+      "#                                        |",
+      "#                                        |",
+      "#    @                                   |",
+      "#                                        |",
+      "#           (-------)                    |",
+      "#    <>                                  |",
+      "#    |#                                  |",
+      "#====__==================================|",
+      "_________________________________________|",
+      "_________________________________________|",
+      "_________________________________________|",
     ],
     {
-      tileWidth: 32,
-      tileHeight: 32,
-      pos: vec2(0, height() / 2),
+      tileWidth: TILE_SIZE,
+      tileHeight: TILE_SIZE,
+      // pos: vec2(0, height() / 2),
       tiles: {
+        "@": () => [
+          sprite("player"),
+          area(),
+          body(),
+          "player",
+          {
+            animate: function () {
+              let curAnim = this.curAnim()
+              if (!this.isGrounded()) {
+                if (curAnim != "fall") {
+                  this.play("fall")
+                }
+              } else if (this.running) {
+                if (curAnim != "run") this.play("run")
+              } else {
+                if (curAnim != "idle") {
+                  this.play("idle")
+                }
+              }
+            },
+            speed: 150,
+            dropThrough: false,
+            atkCD: 0.25,
+            cd: 0,
+            shooting: false,
+            seed: "shotgun",
+            growing: false,
+            bloom: false,
+            seedCD: 0,
+          },
+        ],
+        "B": () => BLady(),
         "=": () => [
           sprite("map", { frame: 1 }),
           area(),
-          scale(2),
           body({ isStatic: true }),
         ],
-        _: () => [sprite("map", { frame: choose([3, 7, 7, 5, 7]) }), scale(2)],
+        _: () => [sprite("map", { frame: choose([3, 7, 7, 5, 7]) })],
         "<": () => [
           sprite("map", { frame: 0 }),
           area(),
-          scale(2),
           body({ isStatic: true }),
         ],
         ">": () => [
           sprite("map", { frame: 2 }),
           area(),
-          scale(2),
           body({ isStatic: true }),
         ],
         "|": () => [
           sprite("map", { frame: 4 }),
           area(),
-          scale(2),
           body({ isStatic: true }),
         ],
         "#": () => [
           sprite("map", { frame: 6 }),
           area(),
-          scale(2),
           body({ isStatic: true }),
         ],
         "(": () => [
           sprite("map", { frame: 11 }),
           area({ scale: vec2(1, 0.5) }),
-          scale(2),
           // this one is a tag:
           "oneway",
         ],
         "-": () => [
           sprite("map", { frame: 12 }),
           area({ scale: vec2(1, 0.5) }),
-          scale(2),
           // this one is a tag:
           "oneway",
         ],
         ")": () => [
           sprite("map", { frame: 13 }),
           area({ scale: vec2(1, 0.5) }),
-          scale(2),
           // this one is a tag:
           "oneway",
         ],
@@ -169,41 +205,9 @@ scene("play", () => {
     }
   )
 
-  const boss = BLady()
+  // const boss = BLady()
 
-  const player = add([
-    sprite("player"),
-    pos(center()),
-    scale(2),
-    area(),
-    body(),
-    "player",
-    {
-      animate: function () {
-        let curAnim = this.curAnim()
-        if (!this.isGrounded()) {
-          if (curAnim != "fall") {
-            this.play("fall")
-          }
-        } else if (this.running) {
-          if (curAnim != "run") this.play("run")
-        } else {
-          if (curAnim != "idle") {
-            this.play("idle")
-          }
-        }
-      },
-      speed: 250,
-      dropThrough: false,
-      atkCD: 0.25,
-      cd: 0,
-      shooting: false,
-      seed: 'shotgun',
-      growing: false,
-      bloom: false,
-      seedCD: 0,
-    },
-  ])
+  const player = map.get("player")[0]
 
   onKeyDown(["left", "right"], () => {
     player.running = true
@@ -230,14 +234,14 @@ scene("play", () => {
     }
   })
 
-  const switches = ["1", "2", "3"] 
-  switches.forEach(key => {
+  const switches = ["1", "2", "3"]
+  switches.forEach((key) => {
     onKeyPress(key, () => {
       if (!player.growing) {
         player.seed = playerSeeds[Number(key - 1)]
       }
     })
-  });
+  })
 
   onKeyPress("space", () => {
     if (player.isGrounded()) {
@@ -254,25 +258,25 @@ scene("play", () => {
 
   onKeyPress("q", () => {
     if (!player.growing) {
-      player.growing = true;
+      player.growing = true
     } else {
       if (player.bloom) {
         switch (player.seed) {
           case "machinegun":
             machineGun(player.pos.add(50, 25), 1)
-            break;
+            break
           case "shotgun":
             shotgunBlast(player.pos.add(40, 20), 1)
-            break;
+            break
           case "rubbershot":
             rubberShot(player.pos.add(60, 10))
             break
           case "default":
             break
         }
-        player.seedCD = 0;
-        player.bloom = false;
-        player.growing = false;
+        player.seedCD = 0
+        player.bloom = false
+        player.growing = false
       }
     }
   })
@@ -294,7 +298,7 @@ scene("play", () => {
 
   onUpdate("bullet", (b) => {
     b.t += dt() * 5 // speed of breathing (adjust multiplier)
-    const s = 1 + 0.2 * Math.sin(b.t)
+    const s = 0.5 + 0.2 * Math.sin(b.t)
     // ↑ oscillates between 0.8x and 1.2x original size
     b.scale = vec2(s)
   })
@@ -310,10 +314,10 @@ scene("play", () => {
   onUpdate("flower", (f) => {
     if (player.growing) {
       f.hidden = false
-      const progress = player.seedCD / 3;
+      const progress = player.seedCD / 3
       const frameRange = 6 - 1
       const idx = 1 + Math.floor(progress * frameRange)
-      f.frame = idx;
+      f.frame = idx
     } else {
       f.hidden = true
     }
@@ -327,12 +331,14 @@ scene("play", () => {
       player.cd = 0
       add([
         sprite("bullets", { frame: 0 }),
-        move(RIGHT, 400),
-        scale(1),
+        move(RIGHT, 250),
+        scale(0.5),
         area(),
+        opacity(),
         anchor("center"),
-        pos(player.pos.add(60, 30)),
-        offscreen(),
+        pos(player.pos.add(40, 15)),
+        offscreen({ destroy: true }),
+        lifespan(2),
         "bullet",
         {
           t: 0,
@@ -344,10 +350,32 @@ scene("play", () => {
       player.seedCD += dt()
 
       if (player.seedCD >= 3) {
-        player.bloom = true;
+        player.bloom = true
       }
     }
   })
+
+  const mapHeight = map.levelHeight()
+  function updateCameraZoom() {
+    const zoom = width() / (TILE_SIZE * TILES_X)
+    camScale(vec2(zoom)) // set camera zoom
+
+    const worldHeight = height() / zoom
+
+    // Move camera so that (0,0) in world space == top-left of the screen
+    camPos(
+      vec2(
+        width() / (2 * zoom) + TILE_SIZE, 
+        mapHeight - worldHeight / 2
+      )
+    )
+  }
+
+  // run once on load
+  updateCameraZoom()
+
+  // re-run on window resize
+  onResize(updateCameraZoom)
 })
 
-go('play')
+go("play")

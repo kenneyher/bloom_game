@@ -1,15 +1,14 @@
 function BLady() {
-  const boss = add([
+  return [
     sprite("blady", { anim: 'idle' }),
     area(),
     body(),
-    scale(3),
-    pos(width() - 400, 200),
+    // scale(1),
     "boss",
     "lady"
-  ])
+  ]
 
-  return boss
+  // return boss
 }
 
 export { BLady }
