@@ -1,3 +1,5 @@
+import seeds from "./seedInfo"
+
 export default function createHUD () {
   const hud = add([
     fixed(),
@@ -20,15 +22,15 @@ export default function createHUD () {
     "flower"
   ])
 
-  const seeds = ['machinegun', 'shotgun', 'rubbershot' ]
-  for (let i=0; i<3; i++) {
+  const names = Object.keys(seeds)
+  for (let i=0; i<names.length; i++) {
     hud.add([
-      sprite('seeds', { frame: i }),
-      pos(-400 + 100 * (i+1), 20),
+      sprite('seeds', { anim: names[i] }),
+      pos(-100 * (names.length + 1) + 100 * (i+1), 0),
       scale(1),
       anchor('center'),
       "seed",
-      seeds[i]
+      names[i]
     ])
   }
 

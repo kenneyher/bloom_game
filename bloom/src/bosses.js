@@ -3,6 +3,7 @@ function BLady(p, player) {
     sprite("blady", { anim: "idle" }),
     area(),
     body(),
+    health(500),
     pos(p),
     state("wait", ["wait", "kiss", "blast"]),
     "boss",
