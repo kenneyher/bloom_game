@@ -27,6 +27,10 @@ export default function loader() {
   loadSprite("bullets", "sprites/bullets.png", {
     sliceX: 4,
     sliceY: 4,
+    anims: {
+      heart: { from: 1, to: 4, loop: true, pingpong: true },
+      explode: { from: 5, to: 8 }
+    }
   })
   loadSprite("seed hud", "sprites/flower_hud.png", {
     sliceX: 7,
