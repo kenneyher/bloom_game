@@ -1,5 +1,5 @@
 export default function loader() {
-  loadRoot("./src/") // A good idea for Itch.io publishing later
+  loadRoot("./") // A good idea for Itch.io publishing later
   loadSprite("blady", "sprites/boss1.png", {
     sliceX: 4,
     sliceY: 6,
